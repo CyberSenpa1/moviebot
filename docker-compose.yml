@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:13
+    container_name: moviebot_db
+    environment:
+      POSTGRES_USER: ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+      POSTGRES_DB: ${PG_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  bot:
+    build: .
+    container_name: moviebot
+    depends_on:
+      - db
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=${PG_URL}
+      - BOT_TOKEN=${BOT_TOKEN}
+    volumes:
+      - .:/app
+    command: >
+      sh -c "python init_db.py &&
+             python src/main.py"
+
+volumes:
+  postgres_data:

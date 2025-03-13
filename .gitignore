@@ -1,0 +1,13 @@
+.env 
+venv/
+__pycache__/
+*.pyc
+*.log
+.vscode
+.idea/
+*.swp
+data/
+.dockerignore
+dist/
+build/
+*.egg-info
