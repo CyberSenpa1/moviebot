@@ -1,17 +1,18 @@
-from aiogram import types
+from aiogram import types, F
 from aiogram.dispatcher.router import Router
-from src.utils.tmdb import search_movie
+from aiogram.filters import Command
+from utils.tmdb import search_movie
+from aiogram.types import Message
 
 router = Router()
 
-async def find_movie(message: types.Message):
-    query = ' '.join(message.get_args())
-    if not query:
-        await message.reply("Введите название фильма после команды /find.")
+@router.message(Command('find'))
+async def cmd_cl(message: Message):
+    args = message.text.split(maxsplit=1)
+    if len(args) < 2:
+        await message.reply("Пожалуйста, укажите название фильма после команды /find")
         return
 
-    movie = await search_movie(query)
-    if movie:
-        await message.reply(f"🎬 {movie['title']} ({movie['release_date']})\n\n{movie['overview']}\n\n{movie['poster_url']}")
     else:
-        await message.reply("Фильм не найден.")
+        movie = args[1]
+        await message.answer(movie)
