@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import select, create_engine
+from sqlalchemy import create_engine
 from os import getenv
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 
 engine = create_engine(getenv("PG_URL"))
 
@@ -8,43 +10,44 @@ engine = create_engine(getenv("PG_URL"))
 class CRUDBase:
     def __init__(self, model):
         self.model = model
-    
-    def create(self, db:Session, **kwargs):
+
+    async def create(self, db: AsyncSession, **kwargs):
         """
         Создает новую запись.
         """
         db_obj = self.model(**kwargs)
         db.add(db_obj)
-        db.commit()
-        db.refresh(db_obj)
+        await db.commit()
+        await db.refresh(db_obj)
         return db_obj
 
-    def get(self, db:Session, id:int):
+    async def get(self, db: AsyncSession, id: int):
         """
-        Возвращение записи по ID
+        Возвращает запись по ID.
         """
-        return db.query(self.model).filter(self.model.id == id).first
-    
-    def update(self, db:Session, id:int, **kwargs):
+        result = await db.execute(select(self.model).filter(self.model.id == id))
+        return result.scalars().first()
+
+    async def update(self, db: AsyncSession, id: int, **kwargs):
         """
-        Обновление записи
+        Обновляет запись.
         """
-        db_obj = self.get(db, id)
+        db_obj = await self.get(db, id)
         if db_obj:
             for key, value in kwargs.items():
                 setattr(db_obj, key, value)
-            db.commit()
-            db.refresh(db_obj)
+            await db.commit()
+            await db.refresh(db_obj)
         return db_obj
-    
-    def delete(self, db: Session, id:int):
+
+    async def delete(self, db: AsyncSession, id: int):
         """
-        Удаляет запись
+        Удаляет запись.
         """
-        db_obj = self.get(db, id)
+        db_obj = await self.get(db, id)
         if db_obj:
-            db.delete(db_obj)
-            db.commit()
+            await db.delete(db_obj)
+            await db.commit()
         return db_obj
     
 from src.database.models import User, Movie, Genre, Favorite, Recommendation, SearchHistory
@@ -53,12 +56,13 @@ class CRUDUser(CRUDBase):
     def __init__(self):
         super().__init__(User)
 
-    def get_by_telegram_id(self, db: Session, telegram_id: int):
+    async def get_by_telegram_id(self, db: AsyncSession, telegram_id: int):
         """
         Возвращает пользователя по telegram_id.
         """
-        return db.query(self.model).filter(self.model.telegram_id == telegram_id).first()
-
+        result = await db.execute(select(self.model).filter(self.model.telegram_id == telegram_id))
+        return result.scalars().first()
+    
 class CRUDMovie(CRUDBase):
     def __init__(self):
         super().__init__(Movie)

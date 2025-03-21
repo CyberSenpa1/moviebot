@@ -1,16 +1,27 @@
-from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
 from src.database.models import Base
 from os import getenv
-from sqlalchemy.orm import Session
-from src.database.crud import CRUDUser
+import asyncio
+import logging
 
-# Создай движок
-engine = create_engine(getenv("PG_URL"))
+# Создайте асинхронный движок
+engine = create_async_engine(getenv("PG_URL"), echo=True)
 
-# Создай все таблицы
-Base.metadata.create_all(engine)
-print("Таблицы созданы!")
+# Создайте асинхронную сессию
+async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
-crud_user = CRUDUser()
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
+async def create_tables():
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Таблицы созданы!")
+    except Exception as e:
+        logger.error(f"Ошибка при создании таблиц: {e}")
 
+# Запуск асинхронной функции
+if __name__ == "__main__":
+    asyncio.run(create_tables())
