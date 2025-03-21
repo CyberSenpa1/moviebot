@@ -1,11 +1,12 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine
 from os import getenv
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.future import select
+import logging
 
-engine = create_engine(getenv("PG_URL"))
-
+# Инициализация асинхронного движка
+engine = create_async_engine(getenv("PG_URL"), echo=True)
 
 class CRUDBase:
     def __init__(self, model):
@@ -28,17 +29,27 @@ class CRUDBase:
         result = await db.execute(select(self.model).filter(self.model.id == id))
         return result.scalars().first()
 
-    async def update(self, db: AsyncSession, id: int, **kwargs):
+    async def update(self, db: AsyncSession, telegram_id: int, **kwargs):
         """
-        Обновляет запись.
+        Обновляет запись пользователя по telegram_id.
         """
-        db_obj = await self.get(db, id)
-        if db_obj:
-            for key, value in kwargs.items():
-                setattr(db_obj, key, value)
-            await db.commit()
-            await db.refresh(db_obj)
-        return db_obj
+        try:
+            logging.info(f"Updating User with telegram_id={telegram_id} and data: {kwargs}")
+            db_obj = await self.get_by_telegram_id(db, telegram_id)
+            if db_obj:
+                logging.info(f"Before update: {db_obj}")
+                for key, value in kwargs.items():
+                    setattr(db_obj, key, value)
+                await db.commit()
+                await db.refresh(db_obj)
+                logging.info(f"After update: {db_obj}")
+            else:
+                logging.warning(f"User with telegram_id={telegram_id} not found.")
+            return db_obj
+        except Exception as e:
+            logging.error(f"Error updating User: {e}")
+            await db.rollback()
+            raise
 
     async def delete(self, db: AsyncSession, id: int):
         """
@@ -49,7 +60,7 @@ class CRUDBase:
             await db.delete(db_obj)
             await db.commit()
         return db_obj
-    
+
 from src.database.models import User, Movie, Genre, Favorite, Recommendation, SearchHistory
 
 class CRUDUser(CRUDBase):
@@ -62,59 +73,65 @@ class CRUDUser(CRUDBase):
         """
         result = await db.execute(select(self.model).filter(self.model.telegram_id == telegram_id))
         return result.scalars().first()
-    
+
 class CRUDMovie(CRUDBase):
     def __init__(self):
         super().__init__(Movie)
 
-    def get_by_tmdb_id(self, db: Session, tmdb_id: int):
+    async def get_by_tmdb_id(self, db: AsyncSession, tmdb_id: int):
         """
         Возвращает фильм по TMDb ID.
         """
-        return db.query(self.model).filter(self.model.tmdb_id == tmdb_id).first()
+        result = await db.execute(select(self.model).filter(self.model.tmdb_id == tmdb_id))
+        return result.scalars().first()
 
 class CRUDGenre(CRUDBase):
     def __init__(self):
         super().__init__(Genre)
 
-    def get_by_name(self, db: Session, name: str):
+    async def get_by_name(self, db: AsyncSession, name: str):
         """
         Возвращает жанр по названию.
         """
-        return db.query(self.model).filter(self.model.name == name).first()
+        result = await db.execute(select(self.model).filter(self.model.name == name))
+        return result.scalars().first()
 
 class CRUDFavorite(CRUDBase):
     def __init__(self):
         super().__init__(Favorite)
 
-    def get_by_user_and_movie(self, db: Session, user_id: int, movie_id: int):
+    async def get_by_user_and_movie(self, db: AsyncSession, user_id: int, movie_id: int):
         """
         Возвращает запись из избранного по ID пользователя и ID фильма.
         """
-        return db.query(self.model).filter(self.model.user_id == user_id, self.model.movie_id == movie_id).first()
+        result = await db.execute(select(self.model).filter(self.model.user_id == user_id, self.model.movie_id == movie_id))
+        return result.scalars().first()
 
-    def get_by_user(self, db: Session, user_id: int):
+    async def get_by_user(self, db: AsyncSession, user_id: int):
         """
         Возвращает список избранных фильмов пользователя.
         """
-        return db.query(self.model).filter(self.model.user_id == user_id).all()
+        result = await db.execute(select(self.model).filter(self.model.user_id == user_id))
+        return result.scalars().all()
 
 class CRUDRecommendation(CRUDBase):
     def __init__(self):
         super().__init__(Recommendation)
 
-    def get_by_user(self, db: Session, user_id: int):
+    async def get_by_user(self, db: AsyncSession, user_id: int):
         """
         Возвращает список рекомендаций для пользователя.
         """
-        return db.query(self.model).filter(self.model.user_id == user_id).all()
+        result = await db.execute(select(self.model).filter(self.model.user_id == user_id))
+        return result.scalars().all()
 
 class CRUDSearchHistory(CRUDBase):
     def __init__(self):
         super().__init__(SearchHistory)
 
-    def get_by_user(self, db: Session, user_id: int):
+    async def get_by_user(self, db: AsyncSession, user_id: int):
         """
         Возвращает историю поиска пользователя.
         """
-        return db.query(self.model).filter(self.model.user_id == user_id).all()
+        result = await db.execute(select(self.model).filter(self.model.user_id == user_id))
+        return result.scalars().all()

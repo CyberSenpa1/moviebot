@@ -5,10 +5,10 @@ from os import getenv
 import asyncio
 import logging
 
-# Создайте асинхронный движок
+# Создаём асинхронный движок
 engine = create_async_engine(getenv("PG_URL"), echo=True)
 
-# Создайте асинхронную сессию
+# Создаём асинхронную сессию
 async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
 logging.basicConfig(level=logging.INFO)
