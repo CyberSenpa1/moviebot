@@ -25,7 +25,7 @@ services:
       - .:/app
     command: >
       sh -c "python init_db.py &&
-             python src/main.py"
+             python -m src.main"
 
 volumes:
   postgres_data:

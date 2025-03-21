@@ -1,7 +1,7 @@
 from aiogram import types, F
 from aiogram.dispatcher.router import Router
 from aiogram.filters import Command
-from utils.tmdb import search_movie
+from src.utils.tmdb import search_movie
 from aiogram.types import Message
 
 router = Router()
