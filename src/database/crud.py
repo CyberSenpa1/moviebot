@@ -73,6 +73,31 @@ class CRUDUser(CRUDBase):
         """
         result = await db.execute(select(self.model).filter(self.model.telegram_id == telegram_id))
         return result.scalars().first()
+    
+    async def get_username_by_telegram_id(self, db: AsyncSession, telegram_id: int):
+        """
+        Возвращает имя пользователя по его Telegram ID.
+        """
+        query = select(User).where(User.telegram_id == telegram_id)
+        result = await db.execute(query)
+        user = result.scalar_one_or_none()  # Получаем объект пользователя или None
+        return user.first_name if user else None  # Возвращаем имя пользователя или None
+    
+    async def get_age_by_telegram_id(self, db: AsyncSession, telegram_id: int):
+        """
+        Возвращает возраст по его Telegram ID.
+        """
+        query = select(User).where(User.telegram_id == telegram_id)
+        result = await db.execute(query)
+        user = result.scalar_one_or_none()
+        return user.age if user else None
+    
+    async def get_sex_by_telegram_id(self, db: AsyncSession, telegram_id: int):
+        query = select(User).where(User.telegram_id == telegram_id)
+        result = await db.execute(query)
+        user = result.scalar_one_or_none()
+        return user.sex if user else None
+    
 
 class CRUDMovie(CRUDBase):
     def __init__(self):
