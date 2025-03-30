@@ -3,10 +3,11 @@ from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from sqlalchemy.ext.asyncio import AsyncSession
+from aiogram.types import ReplyKeyboardMarkup, ReplyKeyboardRemove
 
 from src.database.crud import CRUDUser
 from src.database.models import User
-from src.keyboards.keyboards import main_menu_keyboard
+from src.keyboards.keyboards import main_menu_keyboard, sex_choose_kb, update_profile_kb
 
 import logging
 
@@ -27,8 +28,8 @@ async def cmd_start(message: types.Message, state: FSMContext, session: AsyncSes
     # Проверяем, зарегистрирован ли пользователь
     user = await crud_user.get_by_telegram_id(session, user_id)
     if user:
-        await message.answer("Вы уже зарегистрированы!")
-        await main_menu_keyboard()
+        await message.answer("Вы уже зарегистрированы!", reply_markup=main_menu_keyboard())
+        await state.set_state(Main_menu.waiting_for_field)
         return
 
     # Если пользователь не зарегистрирован, начинаем процесс регистрации
@@ -96,7 +97,7 @@ class UpdateUserStates(StatesGroup):
 # Команда /update_profile
 @router.message(Command("update_profile"))
 async def cmd_update_profile(message: types.Message, state: FSMContext):
-    await message.answer("Что вы хотите обновить? (имя, возраст, пол)")
+    await message.answer("Что вы хотите обновить? (имя, возраст, пол)", reply_markup=update_profile_kb())
     await state.set_state(UpdateUserStates.waiting_for_field)
 
 # Обработчик выбора поля
@@ -107,16 +108,18 @@ async def process_field_choice(message: types.Message, state: FSMContext):
     if field in ["имя", "возраст", "пол"]:
         await state.update_data(field=field)
         if field == "имя":
-            await message.answer("Введите новое имя:")
+            await message.answer("Введите имя:")
             await state.set_state(UpdateUserStates.waiting_for_new_name)
         elif field == "возраст":
-            await message.answer("Введите новый возраст:")
+            await message.answer("Введите свой возраст:")
             await state.set_state(UpdateUserStates.waiting_for_new_age)
         elif field == "пол":
-            await message.answer("Введите новый пол (мужской/женский):")
+            await message.answer("Выберите пол (мужской/женский):", reply_markup=sex_choose_kb())
             await state.set_state(UpdateUserStates.waiting_for_new_sex)
     else:
-        await message.answer("Пожалуйста, выберите одно из: имя, возраст, пол.")
+        await message.answer("Пожалуйста, выберите одно из: имя, возраст, пол.", reply_markup=update_profile_kb())
+
+
 
 # Обработчик для обновления имени
 @router.message(UpdateUserStates.waiting_for_new_name)
@@ -136,8 +139,9 @@ async def process_new_name(message: types.Message, state: FSMContext, session: A
     logging.info(f"Updating name for user {user_id} to {new_name}")
     await crud_user.update(session, user_id, first_name=new_name)
 
-    await message.answer(f"Имя успешно обновлено на {new_name}!")
+    await message.answer(f"Имя успешно обновлено на {new_name}!", reply_markup=main_menu_keyboard())
     await state.clear()
+    await state.set_state(Main_menu.waiting_for_field)
 
 # Обработчик для обновления возраста
 @router.message(UpdateUserStates.waiting_for_new_age)
@@ -162,8 +166,9 @@ async def process_new_age(message: types.Message, state: FSMContext, session: As
         logging.info(f"Updating age for user {user_id} to {new_age}")
         await crud_user.update(session, user_id, age=new_age)
 
-        await message.answer(f"Возраст успешно обновлен на {new_age}!")
+        await message.answer(f"Возраст успешно обновлен на {new_age}!", reply_markup=main_menu_keyboard())
         await state.clear()
+        await state.set_state(Main_menu.waiting_for_field)
     except ValueError:
         await message.answer("Пожалуйста, введите число.")
 
@@ -180,7 +185,7 @@ async def process_new_sex(message: types.Message, state: FSMContext, session: As
 
     new_sex = message.text.lower()
     if new_sex not in ["мужской", "женский"]:
-        await message.answer("Пожалуйста, выберите 'мужской' или 'женский'.")
+        await message.answer("Пожалуйста, выберите 'мужской' или 'женский'.", reply_markup=sex_choose_kb())
         return
 
     user_id = message.from_user.id  # Это telegram_id
@@ -189,5 +194,39 @@ async def process_new_sex(message: types.Message, state: FSMContext, session: As
     logging.info(f"Updating sex for user {user_id} to {new_sex}")
     await crud_user.update(session, user_id, sex=new_sex)
 
-    await message.answer(f"Пол успешно обновлен на {new_sex}!")
+    await message.answer(f"Пол успешно обновлен на {new_sex}!", reply_markup=main_menu_keyboard())
     await state.clear()
+    await state.set_state(Main_menu.waiting_for_field)
+
+
+class Main_menu(StatesGroup):
+    waiting_for_profile = State()
+    waiting_for_update_profile = State()
+    waiting_for_find_movie = State()
+    waiting_for_field = State()
+
+@router.message(Main_menu.waiting_for_field)
+async def process_field_choice(message: types.Message, state: FSMContext, session: AsyncSession):
+    field = message.text.lower()
+    user_id = message.from_user.id
+    crud_user = CRUDUser()
+    
+    if field in ["профиль", "изменить профиль", "найти фильм"]:
+        await state.update_data(field=field)
+        user = await crud_user.get_username_by_telegram_id(session, user_id)
+        user_age = await crud_user.get_age_by_telegram_id(session, user_id)
+        user_sex = await crud_user.get_sex_by_telegram_id(session, user_id)
+        if field == "профиль":
+            await message.answer(f"Ваше имя: {user}\n"
+                                 f"Ваш возраст: {user_age}\n"
+                                 f"Ваш пол: {user_sex}")
+            await state.update_data(field=field)
+            return
+        elif field == "изменить профиль":
+            await cmd_update_profile(message, state)
+        elif field == "найти фильм":
+            # Здесь будет логика для поиска фильма
+            pass
+    else:
+        await message.answer("Пожалуйста, выберите один из доступных вариантов.")
+                
