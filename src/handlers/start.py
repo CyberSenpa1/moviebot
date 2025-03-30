@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.crud import CRUDUser
 from src.database.models import User
+from src.keyboards.keyboards import main_menu_keyboard
 
 import logging
 
@@ -27,6 +28,7 @@ async def cmd_start(message: types.Message, state: FSMContext, session: AsyncSes
     user = await crud_user.get_by_telegram_id(session, user_id)
     if user:
         await message.answer("Вы уже зарегистрированы!")
+        await main_menu_keyboard()
         return
 
     # Если пользователь не зарегистрирован, начинаем процесс регистрации
