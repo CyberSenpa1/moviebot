@@ -105,7 +105,7 @@ async def cmd_update_profile(message: types.Message, state: FSMContext):
 async def process_field_choice(message: types.Message, state: FSMContext):
     field = message.text.lower()
 
-    if field in ["имя", "возраст", "пол"]:
+    if field in ["имя", "возраст", "пол", "назад"]:
         await state.update_data(field=field)
         if field == "имя":
             await message.answer("Введите имя:")
@@ -116,6 +116,9 @@ async def process_field_choice(message: types.Message, state: FSMContext):
         elif field == "пол":
             await message.answer("Выберите пол (мужской/женский):", reply_markup=sex_choose_kb())
             await state.set_state(UpdateUserStates.waiting_for_new_sex)
+        elif field == "назад":
+            await message.answer("Вы в главном меню", reply_markup=main_menu_keyboard())
+            await state.set_state(Main_menu.waiting_for_field)
     else:
         await message.answer("Пожалуйста, выберите одно из: имя, возраст, пол.", reply_markup=update_profile_kb())
 

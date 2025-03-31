@@ -21,6 +21,7 @@ def update_profile_kb():
             [KeyboardButton(text="Имя")],
             [KeyboardButton(text="Возраст")],
             [KeyboardButton(text="Пол")],
+            [KeyboardButton(text="Назад")]
         )
     )
     return keyboard
