@@ -3,7 +3,6 @@ from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from sqlalchemy.ext.asyncio import AsyncSession
-from aiogram.types import ReplyKeyboardMarkup, ReplyKeyboardRemove
 
 from src.database.crud import CRUDUser
 from src.database.models import User
@@ -214,7 +213,8 @@ async def process_field_choice(message: types.Message, state: FSMContext, sessio
     field = message.text.lower()
     user_id = message.from_user.id
     crud_user = CRUDUser()
-    
+
+
     if field in ["профиль", "изменить профиль", "найти фильм"]:
         await state.update_data(field=field)
         user = await crud_user.get_username_by_telegram_id(session, user_id)
@@ -233,4 +233,3 @@ async def process_field_choice(message: types.Message, state: FSMContext, sessio
             pass
     else:
         await message.answer("Пожалуйста, выберите один из доступных вариантов.")
-                

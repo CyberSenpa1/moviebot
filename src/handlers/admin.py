@@ -1,11 +1,13 @@
-from aiogram.filters import Command, Filter
+from aiogram.filters import Command, Filter, StateFilter
 from aiogram import Router, F, Bot
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.exceptions import TelegramForbiddenError, TelegramRetryAfter
 
+
 from src.keyboards.keyboards import admin_panel, cancel_kb, confirm_kb
+
 from config import admins
 
 from src.database.models import User
@@ -13,7 +15,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 import asyncio
-
+from sqlalchemy.future import select
 from init_db import async_session_maker
 
 
@@ -24,7 +26,12 @@ ADMINS_IDS = admins
 
 class IsAdminFilter(Filter):
     async def __call__(self, message: Message) -> bool:
+        # Разрешаем команду /admin независимо от состояния
+        if isinstance(message, Message) and message.text and message.text.startswith('/admin'):
+            return message.from_user.id in ADMINS_IDS
         return message.from_user.id in ADMINS_IDS
+
+    
 
 # Регистрация фильтра    
 admin_router.message.filter(IsAdminFilter())
@@ -32,9 +39,19 @@ admin_router.callback_query.filter(IsAdminFilter())
 
 
 @admin_router.message(Command("admin"))
-async def show_admin_panel(message: Message):
-    """Обработчик команды /admin"""
-    await message.answer("👨‍💻 Админ-панель:", reply_markup=admin_panel())
+async def handle_admin_command_anywhere(message: Message, state: FSMContext):
+    """Обработчик /admin из любого состояния"""
+    # Сбрасываем текущее состояние (если нужно)
+    await state.clear()
+    
+    if message.from_user.id not in ADMINS_IDS:
+        await message.answer("⛔ У вас нет прав администратора")
+        return
+    
+    await message.answer(
+        "👨‍💻 Админ-панель:",
+        reply_markup=admin_panel()
+    )
 
 
 @admin_router.callback_query(F.data == "admin_back")
@@ -50,20 +67,24 @@ async def go_back(callback: CallbackQuery):
 @admin_router.callback_query(F.data == "admin_stats")
 async def show_statistics(callback: CallbackQuery):
     """Показ статистики бота"""
-    # Здесь можно получить реальную статистику из БД
-    stats_text = (
-        "📊 Статистика бота:\n\n"
-        "👥 Всего пользователей: 1,024\n"
-        "🟢 Активных за месяц: 256\n"
-        "🔴 Новых сегодня: 12\n"
-        "📝 Сообщений сегодня: 345"
-    )
-    
-    back_button = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔙 Назад", callback_data="admin_back")]
-    ])
-    
-    await callback.message.edit_text(stats_text, reply_markup=back_button)
+    async with async_session_maker() as session:
+        result = await session.stream(select(User.telegram_id))
+        user_ids = [user.telegram_id async for user in result]
+        total_users = len(user_ids)
+        # Здесь можно получить реальную статистику из БД
+        stats_text = (
+            f"📊 Статистика бота:\n\n"
+            f"👥 Всего пользователей: {total_users}\n"
+            f"🟢 Активных за месяц: 256\n"
+            f"🔴 Новых сегодня: 12\n"
+            f"📝 Сообщений сегодня: 345"
+        )
+        
+        back_button = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🔙 Назад", callback_data="admin_back")]
+        ])
+        
+        await callback.message.edit_text(stats_text, reply_markup=back_button)
 
 class MailingStates(StatesGroup):
     WAITING_TEXT = State()
@@ -106,8 +127,6 @@ async def send_message_with_retry(bot: Bot, chat_id: int, text: str, parse_mode:
         print(f"Ошибка при отправке: {e}")
         return False
     
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 
 @admin_router.callback_query(F.data == "confirm_mailing", MailingStates.WAITING_CONFIRM)
 async def execute_mailing(callback: CallbackQuery, state: FSMContext, bot: Bot):

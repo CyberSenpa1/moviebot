@@ -34,7 +34,7 @@ async def main():
     dp = Dispatcher(storage=storage)
 
     # Регистрация роутеров
-    dp.include_routers(start.router, search.router, admin.admin_router)
+    dp.include_routers(admin.admin_router, start.router, search.router,)
 
     from aiogram import types
     from aiogram.dispatcher.middlewares.base import BaseMiddleware
