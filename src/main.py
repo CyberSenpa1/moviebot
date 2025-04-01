@@ -7,7 +7,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
-from src.handlers import start, search
+from src.handlers import start, search, admin
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -34,7 +34,7 @@ async def main():
     dp = Dispatcher(storage=storage)
 
     # Регистрация роутеров
-    dp.include_routers(start.router, search.router)
+    dp.include_routers(start.router, search.router, admin.admin_router)
 
     from aiogram import types
     from aiogram.dispatcher.middlewares.base import BaseMiddleware

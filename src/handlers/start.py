@@ -52,7 +52,7 @@ async def process_age(message: types.Message, state: FSMContext):
             await message.answer("Пожалуйста, введите корректный возраст (от 0 до 120).")
             return
         await state.update_data(age=age)
-        await message.answer("Отлично! Укажи свой пол (мужской/женский).")
+        await message.answer("Отлично! Укажи свой пол (мужской/женский).", reply_markup=sex_choose_kb())
         await state.set_state(RegistrationStates.waiting_for_sex)
     except ValueError:
         await message.answer("Пожалуйста, введите число.")
@@ -62,7 +62,7 @@ async def process_age(message: types.Message, state: FSMContext):
 async def process_sex(message: types.Message, state: FSMContext, session: AsyncSession):
     sex = message.text.lower()
     if sex not in ["мужской", "женский"]:
-        await message.answer("Пожалуйста, выберите 'мужской' или 'женский'.")
+        await message.answer("Пожалуйста, выберите 'мужской' или 'женский'.", reply_markup=sex_choose_kb())
         return
 
     # Получаем все данные из состояния
@@ -82,8 +82,9 @@ async def process_sex(message: types.Message, state: FSMContext, session: AsyncS
         sex=sex
     )
 
-    await message.answer(f"Спасибо, {name}! Ты успешно зарегистрирован.")
+    await message.answer(f"Спасибо, {name}! Ты успешно зарегистрирован.", reply_markup=main_menu_keyboard())
     await state.clear()
+    await state.set_state(Main_menu.waiting_for_field)
 
 # команда update_profile
 

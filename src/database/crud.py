@@ -98,6 +98,13 @@ class CRUDUser(CRUDBase):
         user = result.scalar_one_or_none()
         return user.sex if user else None
     
+    async def get_all_user_ids(self, db: AsyncSession):
+        """
+        Возвращает только telegram_id всех пользователей (оптимизировано для рассылки)
+        """
+        result = await db.execute(select(self.model.telegram_id))
+        return result.scalars().all()
+    
 
 class CRUDMovie(CRUDBase):
     def __init__(self):

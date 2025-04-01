@@ -19,4 +19,5 @@ SQLAlchemy==2.0.39
 typing_extensions==4.12.2
 yarl==1.18.3
 psycopg2-binary
+alembic>=1.0.0
 asyncpg

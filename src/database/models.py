@@ -1,5 +1,5 @@
 from sqlalchemy import (
-    Column, Integer, String, Text, Date, VARCHAR, TIMESTAMP, ForeignKey, Table, BigInteger, UniqueConstraint
+    Column, Integer, String, Text, Date, VARCHAR, TIMESTAMP, ForeignKey, Table, BigInteger, UniqueConstraint, Boolean
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
@@ -18,12 +18,13 @@ class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True)
     telegram_id = Column(BigInteger, unique=True, nullable=False)
-    username = Column(VARCHAR(255), nullable=False)
+    username = Column(VARCHAR(255), nullable=True, default="unknown")
     first_name = Column(VARCHAR(255))
     last_name = Column(VARCHAR(255))
     age = Column(Integer, nullable=True)
     sex = Column(String, nullable=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
+    is_active = Column(Boolean, default=True, nullable=False)
 
     # Связь с избранными фильмами
     favorites = relationship('Favorite', back_populates='user')
