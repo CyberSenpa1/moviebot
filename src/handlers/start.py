@@ -1,12 +1,12 @@
-from aiogram import Router, types
+from aiogram import Router, types, F
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
+from aiogram.types import CallbackQuery, ReplyKeyboardRemove
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.crud import CRUDUser
-from src.database.models import User
-from src.keyboards.keyboards import main_menu_keyboard, sex_choose_kb, update_profile_kb
+from src.keyboards.keyboards import main_menu_keyboard, sex_choose_kb, update_profile_kb, movie_menu
 
 import logging
 
@@ -27,7 +27,7 @@ async def cmd_start(message: types.Message, state: FSMContext, session: AsyncSes
     # Проверяем, зарегистрирован ли пользователь
     user = await crud_user.get_by_telegram_id(session, user_id)
     if user:
-        await message.answer("Вы уже зарегистрированы!", reply_markup=main_menu_keyboard())
+        await message.answer("Вы в главном меню:", reply_markup=main_menu_keyboard())
         await state.set_state(Main_menu.waiting_for_field)
         return
 
@@ -221,15 +221,39 @@ async def process_field_choice(message: types.Message, state: FSMContext, sessio
         user_age = await crud_user.get_age_by_telegram_id(session, user_id)
         user_sex = await crud_user.get_sex_by_telegram_id(session, user_id)
         if field == "профиль":
-            await message.answer(f"Ваше имя: {user}\n"
-                                 f"Ваш возраст: {user_age}\n"
-                                 f"Ваш пол: {user_sex}")
+            await message.answer(f"Имя: {user}\n"
+                                 f"Возраст: {user_age}\n"
+                                 f"Пол: {user_sex}")
             await state.update_data(field=field)
             return
         elif field == "изменить профиль":
             await cmd_update_profile(message, state)
         elif field == "найти фильм":
-            # Здесь будет логика для поиска фильма
-            pass
+            await message.answer(
+                "Давай поищем фильм",
+                reply_markup=ReplyKeyboardRemove()  # Скрываем обычную клавиатуру
+            )
+            # Отправляем инлайн-клавиатуру
+            await message.answer(
+                "Выберите действие:",
+                reply_markup=movie_menu()  # Показываем инлайн-меню
+            )
+            await state.clear()
     else:
         await message.answer("Пожалуйста, выберите один из доступных вариантов.")
+
+
+@router.callback_query(F.data == "back_to_menu")
+async def back_menu(callback: CallbackQuery, state: FSMContext):
+    # Убираем инлайн-клавиатуру из текущего сообщения
+    await callback.message.edit_reply_markup(reply_markup=None)
+    
+    # Отправляем новое сообщение с основной клавиатурой
+    await callback.message.answer(
+        "Возвращаемся в главное меню",
+        reply_markup=main_menu_keyboard()
+    )
+    await state.set_state(Main_menu.waiting_for_field)
+    
+    # Подтверждаем обработку callback
+    await callback.answer()

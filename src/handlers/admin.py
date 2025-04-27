@@ -1,4 +1,4 @@
-from aiogram.filters import Command, Filter, StateFilter
+from aiogram.filters import Command, Filter
 from aiogram import Router, F, Bot
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.context import FSMContext
@@ -11,11 +11,8 @@ from src.keyboards.keyboards import admin_panel, cancel_kb, confirm_kb
 from config import admins
 
 from src.database.models import User
-from sqlalchemy.orm import Session
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 import asyncio
-from sqlalchemy.future import select
 from init_db import async_session_maker
 
 
@@ -45,8 +42,7 @@ async def handle_admin_command_anywhere(message: Message, state: FSMContext):
     await state.clear()
     
     if message.from_user.id not in ADMINS_IDS:
-        await message.answer("⛔ У вас нет прав администратора")
-        return
+        pass
     
     await message.answer(
         "👨‍💻 Админ-панель:",

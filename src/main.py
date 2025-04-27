@@ -2,6 +2,7 @@ import logging
 import asyncio
 from os import getenv
 
+from aiogram.types import CallbackQuery
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
@@ -48,8 +49,12 @@ async def main():
     dp.update.middleware(DBSessionMiddleware())
 
 
+
+
     # Запуск бота
     logger.info("Бот запущен")
+    for every in admin.admins:
+        await bot.send_message(chat_id=every, text="Бот запущен, админ панель /admin")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":

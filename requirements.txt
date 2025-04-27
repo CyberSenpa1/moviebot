@@ -21,3 +21,4 @@ yarl==1.18.3
 psycopg2-binary
 alembic>=1.0.0
 asyncpg
+requests

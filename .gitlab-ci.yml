@@ -1,0 +1,47 @@
+stages:
+  - build
+  - test
+  - deploy
+
+variables:
+  PYTHON_VERSION: "3.12.3"
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+cache:
+  paths:
+    - .cache/pip
+    - venv/
+
+build-job:
+  stage: build
+  script:
+    - echo "Установка Python $PYTHON_VERSION и зависимостей..."
+    - python --version
+    - pip install vertualenv
+    - virtualenv venv
+    - source venv/bin/activate
+  artifacts:
+    paths:
+      - dist/
+    expire_in: "1 days"
+  
+test-job:
+  stage: test
+  script:
+    - echo "Запуск тестов..."
+    - source venv/bin/activate
+    - pip install pytest pytest-cov
+    - pytest tests/ --cov=myapp
+  dependencies:
+    - build-job
+  
+deploy-job:
+  stage: deploy
+  script:
+    - echo "Деплой в локальное окружение..."
+    - source venv/bin/activate
+    - pip install --upgrade dist/*.whl
+    - echo "Проверка, что приложение работает:"
+    - python -c "import myapp; print(myapp.__version__)"
+  only:
+    - main

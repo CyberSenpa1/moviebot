@@ -26,6 +26,7 @@ services:
     environment:
       - DATABASE_URL=${PG_URL}
       - BOT_TOKEN=${BOT_TOKEN}
+      - KNP_API=${KNP_API}
     volumes:
       - .:/app
     command: >
