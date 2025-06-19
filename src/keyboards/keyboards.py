@@ -84,3 +84,9 @@ def genre_menu():
         ],
     )
 
+
+def random_movie_panel():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Дальше", callback_data="random_movie")],
+        [InlineKeyboardButton(text="Меню", callback_data="back_to_menu")]
+    ])

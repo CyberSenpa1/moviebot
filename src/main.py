@@ -2,9 +2,10 @@ import logging
 import asyncio
 from os import getenv
 
-from aiogram.types import CallbackQuery
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.dispatcher.middlewares.base import BaseMiddleware
+
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
@@ -37,8 +38,6 @@ async def main():
     # Регистрация роутеров
     dp.include_routers(admin.admin_router, start.router, search.router,)
 
-    from aiogram import types
-    from aiogram.dispatcher.middlewares.base import BaseMiddleware
 
     class DBSessionMiddleware(BaseMiddleware):
         async def __call__(self, handler, event, data):
@@ -47,8 +46,6 @@ async def main():
                 return await handler(event, data)
 
     dp.update.middleware(DBSessionMiddleware())
-
-
 
 
     # Запуск бота
